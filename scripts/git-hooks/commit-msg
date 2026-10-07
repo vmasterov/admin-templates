@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+# Определение цветов
+readonly RED=$'\033[31m'
+readonly GREEN=$'\033[32m'
+readonly YELLOW=$'\033[33m'
+readonly NC=$'\033[0m'
+
+message="$(cat "$1")"
+required_pattern="^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\(.+\))?: .+"
+
+if ! echo "$message" | grep -qE "$required_pattern"; then
+  echo "❌ Неверный формат сообщения коммита. Сообщение коммита должно соответствовать Conventional Commits:"
+  echo "<type>[optional scope]: <description>"
+  echo ""
+  echo "Допустимые типы:"
+  echo "  ${GREEN}feat${NC}     - новая функциональность"
+  echo "  ${GREEN}fix${NC}      - исправление багов"
+  echo "  ${GREEN}docs${NC}     - изменения в документации"
+  echo "  ${GREEN}style${NC}    - форматирование, отсутствующие точки с запятой и т.д."
+  echo "  ${GREEN}refactor${NC} - рефакторинг кода"
+  echo "  ${GREEN}perf${NC}     - улучшение производительности"
+  echo "  ${GREEN}test${NC}     - добавление тестов"
+  echo "  ${GREEN}chore${NC}    - обновление сборки, вспомогательные инструменты"
+  echo "  ${GREEN}build${NC}    - изменения в системе сборки"
+  echo "  ${GREEN}ci${NC}       - изменения в CI/CD"
+  echo "  ${GREEN}revert${NC}   - откат предыдущих изменений"
+  echo ""
+  echo "Примеры:"
+  echo "  feat: добавлена новая страница авторизации"
+  echo "  fix(auth): исправлена ошибка валидации пароля"
+  echo "  docs: обновлена документация API"
+  echo "  refactor(components): переписан компонент Button"
+  echo ""
+  echo "Ваше сообщение коммита:"
+  echo "  $message"
+  echo ""
+  echo "Для получения дополнительной информации проверьте скрипт в scripts/git-hooks/commit-msg"
+  exit 1
+fi
+
+exit 0

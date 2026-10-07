@@ -1,0 +1,29 @@
+pre-commit:
+  piped: true
+  jobs:
+    - name: branch-name
+      run: bash scripts/git-hooks/branch-name
+    - name: projects
+      group:
+        parallel: true
+        jobs:
+          - name: react
+            root: "react/"
+            glob: "*.{ts,tsx}"
+            group: &checks
+              parallel: true
+              jobs:
+              - name: lint
+                run: npm run lint -- {staged_files}
+              - name: test
+                run: npm run test:related -- {staged_files}
+              - name: build
+                run: npm run build
+          - name: vue
+            root: "vue/"
+            glob: "*.{ts,vue}"
+            group: *checks
+commit-msg:
+  jobs:
+    - name: commit-msg
+      run: bash scripts/git-hooks/commit-msg {1}
