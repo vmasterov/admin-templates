@@ -11,8 +11,11 @@ pre-commit:
             root: "react/"
             glob: "*.{ts,tsx}"
             group: &checks
-              parallel: true
+              piped: true
               jobs:
+              - name: format
+                stage_fixed: true
+                run: npm run format -- {staged_files}
               - name: lint
                 run: npm run lint -- {staged_files}
               - name: test
