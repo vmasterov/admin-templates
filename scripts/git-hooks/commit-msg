@@ -6,7 +6,7 @@ readonly GREEN=$'\033[32m'
 readonly YELLOW=$'\033[33m'
 readonly NC=$'\033[0m'
 
-message="$(cat "$1")"
+message="$(head -n1 "$1")"
 required_pattern="^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\(.+\))?: .+"
 
 if ! echo "$message" | grep -qE "$required_pattern"; then
