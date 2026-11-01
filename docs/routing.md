@@ -45,3 +45,67 @@
 - Настоящая авторизация (пока заглушка сессии; хранение — тема «Авторизация»).
 - Lazy loading — шаг O.
 - Роли и возврат на исходную страницу после входа — новые требования сессии 5.
+
+## A — Architecture
+
+### Структура (React; во Vue та же, с `.vue` вместо `.tsx`)
+
+```
+app/
+  config/
+    pages.config.ts      имя маршрута → компонент страницы (Record<RouteName, Component>)
+    guards.config.ts     политика доступа: [requireAuth('login'), guestOnly('articles')]
+  layout/layout.tsx      шапка + сайдбар
+  adapters/routerAdapter.ts  конфиг + страницы → формат библиотеки; вызов checkAccess
+pages/                   Login, Articles, ArticleEdit, Comments, NotFound
+features/auth/           сессия (пока заглушка), тип TSession
+shared/
+  config/router.config.ts  конфиг маршрутов блога + привязка фабрик core
+  lib/router/              core — чистый TS, про блог не знает
+    types/    TRouterConfig, TAccessContext
+    helpers/  createBuildPath, checkAccess, getMenuTree, getBreadcrumbs
+    guards/   requireAuth, guestOnly (фабрики)
+```
+
+### Зависимости
+
+```
+app ──→ pages ──→ features/auth
+ │         │
+ │         └──→ shared/config
+ └──→ features/auth, shared/config, shared/lib/router
+shared/config ──→ shared/lib/router   (не наоборот)
+```
+
+### Решения и причины
+
+- **Роутинг — инфраструктура, а не фича.** Фича — действие пользователя; адаптер импортирует `pages`,
+  поэтому может жить только в `app`.
+- **Конфиг маршрутов — в `shared/config`.** Он нужен страницам (ссылки), фичам (переходы) и лейауту
+  (меню). Из `features` соседние фичи его импортировать не могли бы. `shared/config` — единственное место
+  в `shared`, где допустимо знание о проекте.
+- **Компоненты отдельно от конфига** (`pages.config.ts` в `app`). Конфиг остаётся одинаковым для
+  React и Vue; `Record<RouteName, Component>` даёт ошибку TS, если страница для маршрута забыта.
+- **Guards: механизм в `shared`, политика в `app/config`.** Фабрика `requireAuth(redirectTo)` универсальна;
+  какие guards и с какими адресами редиректа — решает проект. Роли на сессии 5 = новая фабрика +
+  строка в `guards.config.ts`.
+- **DIP для сессии.** `TAccessContext` (`status`, `role?`) объявлен в core — абстракцией владеет
+  потребитель. Полная сессия — в `features/auth`. Адаптер переводит одно в другое и передаёт параметром
+  (DI). `Session` не выносится в `shared`: роутеру нужны два поля, а не вся сессия (ISP).
+- **Фабрики в core.** Core не импортирует конфиг блога; конфиг привязывается к нему один раз в
+  `shared/config` (`createBuildPath(routes)`). Имена маршрутов — литеральный union из ключей конфига,
+  отдельные константы имён не нужны.
+- **Адаптер — тонкий клей без логики доступа.** Обязанности: перевести конфиг в формат
+  библиотеки (лейаут как родитель, `*` — NotFound), вызвать `checkAccess` при навигации, показать
+  загрузку, пока сессия неизвестна, выставить `document.title`. Проверка: `if` про доступ в адаптере
+  означает, что логика утекла из core.
+
+### Перенесено на следующие шаги
+
+- **D:** в meta маршрута — `menu?: { label }` (есть поле = пункт меню) и `parent?: RouteName`
+  (крошки). `children` не хранится, а вычисляется; `getMenuTree` сразу возвращает дерево.
+  Открыто: активный пункт меню — по префиксу пути или по цепочке `parent`.
+- **I:** отдельные фабрики или одна `createRouter(routes)`; вывод типа параметров из пути
+  (`:id` → обязательный `{ id }`).
+- **O:** обёртка `AppLink` в `shared/ui` — если понадобится prefetch страниц или единое поведение
+  ссылок. До тех пор — `Link` / `RouterLink` библиотеки + `buildPath`.
