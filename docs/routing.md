@@ -162,11 +162,50 @@ type TAccessContext = { status: 'guest' } | { status: 'authenticated' };
 
 ### Перенесено на следующие шаги
 
-- **I:**
-  - отдельные фабрики или одна `createRouter(routes)`;
-  - вывод типа параметров из пути через template literal types (`:id` → обязательный `{ id }`);
-  - union имён страниц для `pages.config` (mapped + условный тип по `C[K] extends TPageRoute`);
-  - проверка, что `redirectTo` и цели guards — имена из того же конфига;
-  - сигнатура `Guard` и `checkAccess`.
+- **I:** см. раздел «I — Interface».
 - **O:** обёртка `AppLink` в `shared/ui` — если понадобится prefetch страниц или единое поведение
   ссылок. До тех пор — `Link` / `RouterLink` библиотеки + `buildPath`.
+
+## I — Interface
+
+Контракты пишутся типами в `shared/lib/router/types` (без реализаций). Решено: отдельные
+фабрики, а не одна `createRouter`. Имена выводятся из конкретного конфига через дженерик
+`C extends TRouterConfig` (`keyof C & string`).
+
+### Чек-лист
+
+- [x] `TRouterConfig`, `TRoute` (страница | редирект, взаимоисключающие через `?: never`), `TAccess`
+- [x] `TKey<C>`, `TPageKey<C>` — имена маршрутов и страниц; `pages.config`:
+      `Record<TPageKey<typeof routes>, ComponentType>`
+- [x] `TAccessContext`
+- [x] `TGuard<C>` — `(ctx, route: TPageRoute) => TPageKey<C> | null`; `TCreateGuard<C>` — фабрика
+      guard'а по цели редиректа
+- [ ] `TCheckAccess<C>` — результат `TPageKey<C> | null` (решает первый сработавший guard; порядок в
+      `guards.config` = приоритет), guards — `readonly`
+- [ ] Проверка `redirectTo`: имя из того же конфига
+- [ ] Тип параметров из пути (template literal + `infer`): `'/articles/:id/edit'` → `{ id: string }`
+- [ ] `TCreateBuildPath<C>` — `buildPath(name, params)`, `params` обязателен, только если в пути
+      есть `:параметры`
+- [ ] `TMenuItem` (`name`, `label`, `path`) и сигнатура `getMenuItems`
+- [ ] Набросок `TSession` (`features/auth`) и `toAccessContext(session)`
+- [ ] Точка входа адаптера: что вызывает `app` и что передаёт (конфиг, страницы, guards,
+      сессия)
+
+### Как срабатывают guards (особенности адаптеров)
+
+- Результат `checkAccess` нигде не хранится: вычисляется при переходе и сразу применяется.
+- Маршрут по URL находит библиотека; имя прикрепляется при регистрации (Vue — `name`,
+  React — `id`/`handle` или маршрут в замыкании обёртки), описание берётся по ключу.
+- **Vue:** `router.beforeEach` — возвращённое значение (`true` или `{ name }`) и есть редирект.
+  Срабатывает только при переходе → после выхода нужен явный переход на `/login` (в действии
+  выхода или `watch` на сессию).
+- **React:** обёртка вокруг каждой страницы — рендерит `<Navigate replace>` или страницу.
+  Перерисовывается и при изменении сессии → после выхода редирект на `/login` происходит сам.
+- Риск: ошибка в конфиге (например, `login` защищённый) даёт бесконечный цикл редиректов —
+  кандидат для шага O.
+
+### Проверка в конце цикла (после O, до кода)
+
+- Трассировка сценариев через все модули: «гость открывает `/articles/5/edit`», «вошедший
+  нажимает «Выйти»».
+- Тест на 8–10 вопросов по решениям R, A, D, I, O.
