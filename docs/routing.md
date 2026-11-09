@@ -180,16 +180,32 @@ type TAccessContext = { status: 'guest' } | { status: 'authenticated' };
 - [x] `TAccessContext`
 - [x] `TGuard<C>` — `(ctx, route: TPageRoute) => TPageKey<C> | null`; `TCreateGuard<C>` — фабрика
       guard'а по цели редиректа
-- [ ] `TCheckAccess<C>` — результат `TPageKey<C> | null` (решает первый сработавший guard; порядок в
-      `guards.config` = приоритет), guards — `readonly`
-- [ ] Проверка `redirectTo`: имя из того же конфига
-- [ ] Тип параметров из пути (template literal + `infer`): `'/articles/:id/edit'` → `{ id: string }`
-- [ ] `TCreateBuildPath<C>` — `buildPath(name, params)`, `params` обязателен, только если в пути
+- [x] `TCheckAccess<C>` — результат `TPageKey<C> | null` (решает первый сработавший guard; порядок в
+      `guards.config` = приоритет), guards — `readonly TGuard<C>[]`
+- [x] Проверка `redirectTo` — **заменена unit-тестом валидности конфига** (шаг кода): каждый
+      `redirectTo` ведёт на существующую страницу, пути уникальны и начинаются с `/`. Тип-валидатор
+      через `defineRoutes` — паттерн библиотек (Vite, TanStack Router), для одного редиректа переусложнение.
+- [x] `TPathParams<P>` — рекурсивный разбор пути (template literal + `infer`):
+      `'/articles/:id/edit'` → `'id'`
+- [x] `TPathArg<Param>`, `TBuildPath<C>`, `TCreateBuildPath` — `params` обязателен, только если в пути
       есть `:параметры`
 - [ ] `TMenuItem` (`name`, `label`, `path`) и сигнатура `getMenuItems`
 - [ ] Набросок `TSession` (`features/auth`) и `toAccessContext(session)`
 - [ ] Точка входа адаптера: что вызывает `app` и что передаёт (конфиг, страницы, guards,
       сессия)
+
+### Решения по типам
+
+- **Где стоит дженерик.** `Config` фиксируется при вызове фабрики, `RouteName` — при каждом
+  вызове `buildPath`.
+- **Обязательность параметров — через rest-аргумент с кортежем:** нет параметров → `[]`, есть →
+  `[params: Record<…>]`. Проверка на пустоту — `[X] extends [never]` (кортеж отключает
+  распределение условного типа).
+- **Без лишнего дженерика для `params`:** при выводе типа из аргумента не срабатывает
+  проверка лишних свойств (`{ id, idd }` прошло бы).
+- **`readonly` — у типа массива, а не у параметра:** `readonly guards` — синтаксис parameter property
+  конструктора, запрещён `erasableSyntaxOnly`.
+- Вывод параметров работает только на конфиге с путями-литералами (`as const satisfies`).
 
 ### Как срабатывают guards (особенности адаптеров)
 

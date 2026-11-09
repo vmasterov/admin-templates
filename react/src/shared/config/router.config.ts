@@ -14,6 +14,6 @@ export const routes = {
   },
   main: {
     path: 'string',
-    redirectTo: 'string',
+    redirectTo: '/test/redirect',
   },
 } as const satisfies TRouterConfig;
