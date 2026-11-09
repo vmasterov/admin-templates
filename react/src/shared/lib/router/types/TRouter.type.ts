@@ -40,7 +40,24 @@ export type TCreateGuard<Config extends TRouterConfig> = (
 ) => TGuard<Config>;
 
 export type TCheckAccess<Config extends TRouterConfig> = (
-  guards: TGuard<Config>[],
+  guards: readonly TGuard<Config>[],
   accessContext: TAccessContext,
   route: TPageRoute,
 ) => TPageKey<Config> | null;
+
+export type TPathParams<Path extends string> = Path extends `${string}:${infer Param}/${infer Rest}`
+  ? Param | TPathParams<Rest>
+  : Path extends `${string}:${infer Param}`
+    ? Param
+    : never;
+
+export type TPathArg<Param extends string> = [Param] extends [never]
+  ? []
+  : [params: Record<Param, string>];
+
+export type TBuildPath<Config extends TRouterConfig> = <RouteName extends TKey<Config>>(
+  routeName: RouteName,
+  ...params: TPathArg<TPathParams<Config[RouteName]['path']>>
+) => string;
+
+export type TCreateBuildPath = <Config extends TRouterConfig>(routes: Config) => TBuildPath<Config>;
