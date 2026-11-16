@@ -672,7 +672,7 @@ if [ "$branch" = "main" ] || [ "$branch" = "develop" ]; then
 fi
 
 # Проверка имени ветки
-if echo "$branch" | grep -qE '^(feature|bugfix|hotfix|refactor|release|chore|docs|test|perf|ci)/'; then
+if echo "$branch" | grep -qE '^(features|bugfix|hotfix|refactor|release|chore|docs|test|perf|ci)/'; then
   echo "${GREEN}✅ Имя ветки верное${NC}"
 elif echo "$branch" | grep -qE '^merge/develop[0-9]*-develop[0-9]*$'; then
   echo "${GREEN}✅ Имя ветки merge верное${NC}"

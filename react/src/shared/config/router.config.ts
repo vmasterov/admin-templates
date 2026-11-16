@@ -2,18 +2,21 @@ import type { TRouterConfig } from '@/shared/lib/router/types';
 
 export const routes = {
   article: {
-    path: 'string',
+    path: '/article',
     access: 'guest',
+    menu: {
+      label: 'Article',
+    },
   },
   comments: {
-    path: 'string',
+    path: '/comments',
     access: 'protected',
     menu: {
-      label: 'string',
+      label: 'Comments',
     },
   },
   main: {
-    path: 'string',
-    redirectTo: '/test/redirect',
+    path: '/main',
+    redirectTo: '/articles',
   },
 } as const satisfies TRouterConfig;
