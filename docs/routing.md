@@ -189,10 +189,23 @@ type TAccessContext = { status: 'guest' } | { status: 'authenticated' };
       `'/articles/:id/edit'` → `'id'`
 - [x] `TPathArg<Param>`, `TBuildPath<C>`, `TCreateBuildPath` — `params` обязателен, только если в пути
       есть `:параметры`
-- [ ] `TMenuItem` (`name`, `label`, `path`) и сигнатура `getMenuItems`
-- [ ] Набросок `TSession` (`features/auth`) и `toAccessContext(session)`
-- [ ] Точка входа адаптера: что вызывает `app` и что передаёт (конфиг, страницы, guards,
-      сессия)
+- [x] `TMenuItem<C>` (`name: TPageKey<C>`, `label`, `path`) и `TGetMenuItems` — плоский список
+- [x] `TSession` (`features/auth`): `guest | authenticated`, `user` только у вошедшего;
+      `TGetSession = () => Promise<TSession>`. Состояния `loading` нет: загрузка живёт внутри
+      промиса, middleware его ждёт. `toAccessContext` не нужна: сессия структурно подходит
+      под `TAccessContext`, соответствие проверяет TS на стыке в адаптере. Типы сессии — в
+      `auth`, а не в `shared` (DIP: core объявляет свои литералы сам).
+- [x] Точка входа адаптера (`app/adapters/router`): `createRoutes<Config>({ routerConfig, pages,
+      layout, notFoundPage, guards, getSession }) => RouteObject[]` — всё статичное приходит
+      параметрами (DI, тест подставляет своё). `createBrowserRouter` — отдельно, в сборке
+      `app/router.ts` (в тестах — `createMemoryRouter`), один раз на уровне модуля.
+- [x] Фабрики middleware (`app`): `TCreateAuthMiddleware(getSession)`,
+      `TCreateGuardMiddleware(route: TPageRoute, guards, buildPath)`. `TPages<Config>` — в `app`
+      (зависит от React, потребители только в `app`). Ключ `sessionContext = createContext<TSession>()`
+      — значение, появится на шаге кода.
+
+**Шаг I закрыт 16.11.2026.** Заглушки `RouteObject` и типа middleware заменить библиотечными
+после установки `react-router`.
 
 ### Решения по типам
 
@@ -215,10 +228,34 @@ type TAccessContext = { status: 'guest' } | { status: 'authenticated' };
 - **Vue:** `router.beforeEach` — возвращённое значение (`true` или `{ name }`) и есть редирект.
   Срабатывает только при переходе → после выхода нужен явный переход на `/login` (в действии
   выхода или `watch` на сессию).
-- **React:** обёртка вокруг каждой страницы — рендерит `<Navigate replace>` или страницу.
-  Перерисовывается и при изменении сессии → после выхода редирект на `/login` происходит сам.
+- **React:** middleware react-router (data mode) — см. «Решение: guards в middleware». Как и
+  во Vue, срабатывает при переходе → после выхода нужен явный переход на `/login`.
 - Риск: ошибка в конфиге (например, `login` защищённый) даёт бесконечный цикл редиректов —
   кандидат для шага O.
+
+### Решение: guards в middleware (13.11.2026)
+
+Было: компонент-обёртка `RouteGuard` (проверка при рендере). Стало: middleware react-router.
+
+**Почему:** так рекомендует документация data mode; проверка идёт до рендера и до loaders
+(порядок: корень → родитель → ребёнок → loaders); адаптеры React и Vue устроены одинаково
+(middleware ≈ `beforeEach`); guards и `checkAccess` не меняются — меняется только место вызова.
+
+**Как устроено:**
+- `features/auth` отдаёт `getSession()` без React и роутера, **с кэшем** (один запрос `/me`, вход и выход
+  обновляют кэш): middleware срабатывает на каждом переходе.
+- Адаптер: контекст сессии (`createContext`) и middleware авторизации на **корневом**
+  маршруте — выше лейаута и `/login`, иначе `guestOnly` останется без сессии.
+- Guard-middleware на каждой странице: `createRoutes` создаёт его фабрикой (маршрут в
+  замыкании) → `checkAccess` → `throw redirect(buildPath(target))`. Один корневой middleware не
+  знает, какая запись конфига совпала; групповые (лейаут + `/login`) хватило бы сейчас,
+  но не для ролей сессии 5.
+- `RouteGuard` и компонент-лоадер не нужны: при первой загрузке — `HydrateFallback`.
+- Выход: очистить кэш сессии + явный переход на `/login`.
+
+**Оценка сложности:** для такого размера хватило бы двух проверок в middleware (~15 строк).
+Список guards + `checkAccess` — осознанный учебный запас под шаблон и сессию 5. Если роли не
+добавятся без правок — абстракция не окупилась.
 
 ### Проверка в конце цикла (после O, до кода)
 

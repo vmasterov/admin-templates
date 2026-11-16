@@ -1,1 +1,1 @@
-export type * from './TRouter.type.ts';
+export type * from './router.type.ts';

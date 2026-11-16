@@ -61,3 +61,11 @@ export type TBuildPath<Config extends TRouterConfig> = <RouteName extends TKey<C
 ) => string;
 
 export type TCreateBuildPath = <Config extends TRouterConfig>(routes: Config) => TBuildPath<Config>;
+
+export type TMenuItem<Config extends TRouterConfig> = {
+  name: TPageKey<Config>;
+  label: string;
+  path: string;
+};
+
+export type TGetMenuItems = <Config extends TRouterConfig>(routes: Config) => TMenuItem<Config>[];
