@@ -10,9 +10,9 @@
    `/comments`, `*`.
 2. **Лейаут:** защищённые страницы рендерятся внутри общего лейаута, `/login` и NotFound — без него.
 3. **Уровни доступа:**
-   - *защищённый*: гость → `/login`;
-   - *только для гостей*: вошедший → `/articles`;
-   - *для всех*: без проверок.
+    - *защищённый*: гость → `/login`;
+    - *только для гостей*: вошедший → `/articles`;
+    - *для всех*: без проверок.
 4. **Состояние сессии:** загружается / гость / вошёл. Пока сессия загружается, guards ничего не решают,
    показывается индикатор загрузки (иначе после перезагрузки страницы вошедшего выкинет на `/login`).
 5. **Редиректы:** `/` → `/articles`; после входа → `/`; после выхода → `/login`.
@@ -176,33 +176,33 @@ type TAccessContext = { status: 'guest' } | { status: 'authenticated' };
 
 - [x] `TRouterConfig`, `TRoute` (страница | редирект, взаимоисключающие через `?: never`), `TAccess`
 - [x] `TKey<C>`, `TPageKey<C>` — имена маршрутов и страниц; `pages.config`:
-      `Record<TPageKey<typeof routes>, ComponentType>`
+  `Record<TPageKey<typeof routes>, ComponentType>`
 - [x] `TAccessContext`
 - [x] `TGuard<C>` — `(ctx, route: TPageRoute) => TPageKey<C> | null`; `TCreateGuard<C>` — фабрика
-      guard'а по цели редиректа
+  guard'а по цели редиректа
 - [x] `TCheckAccess<C>` — результат `TPageKey<C> | null` (решает первый сработавший guard; порядок в
-      `guards.config` = приоритет), guards — `readonly TGuard<C>[]`
+  `guards.config` = приоритет), guards — `readonly TGuard<C>[]`
 - [x] Проверка `redirectTo` — **заменена unit-тестом валидности конфига** (шаг кода): каждый
-      `redirectTo` ведёт на существующую страницу, пути уникальны и начинаются с `/`. Тип-валидатор
-      через `defineRoutes` — паттерн библиотек (Vite, TanStack Router), для одного редиректа переусложнение.
+  `redirectTo` ведёт на существующую страницу, пути уникальны и начинаются с `/`. Тип-валидатор
+  через `defineRoutes` — паттерн библиотек (Vite, TanStack Router), для одного редиректа переусложнение.
 - [x] `TPathParams<P>` — рекурсивный разбор пути (template literal + `infer`):
-      `'/articles/:id/edit'` → `'id'`
+  `'/articles/:id/edit'` → `'id'`
 - [x] `TPathArg<Param>`, `TBuildPath<C>`, `TCreateBuildPath` — `params` обязателен, только если в пути
-      есть `:параметры`
+  есть `:параметры`
 - [x] `TMenuItem<C>` (`name: TPageKey<C>`, `label`, `path`) и `TGetMenuItems` — плоский список
 - [x] `TSession` (`features/auth`): `guest | authenticated`, `user` только у вошедшего;
-      `TGetSession = () => Promise<TSession>`. Состояния `loading` нет: загрузка живёт внутри
-      промиса, middleware его ждёт. `toAccessContext` не нужна: сессия структурно подходит
-      под `TAccessContext`, соответствие проверяет TS на стыке в адаптере. Типы сессии — в
-      `auth`, а не в `shared` (DIP: core объявляет свои литералы сам).
+  `TGetSession = () => Promise<TSession>`. Состояния `loading` нет: загрузка живёт внутри
+  промиса, middleware его ждёт. `toAccessContext` не нужна: сессия структурно подходит
+  под `TAccessContext`, соответствие проверяет TS на стыке в адаптере. Типы сессии — в
+  `auth`, а не в `shared` (DIP: core объявляет свои литералы сам).
 - [x] Точка входа адаптера (`app/adapters/router`): `createRoutes<Config>({ routerConfig, pages,
       layout, notFoundPage, guards, getSession }) => RouteObject[]` — всё статичное приходит
-      параметрами (DI, тест подставляет своё). `createBrowserRouter` — отдельно, в сборке
-      `app/router.ts` (в тестах — `createMemoryRouter`), один раз на уровне модуля.
+  параметрами (DI, тест подставляет своё). `createBrowserRouter` — отдельно, в сборке
+  `app/router.ts` (в тестах — `createMemoryRouter`), один раз на уровне модуля.
 - [x] Фабрики middleware (`app`): `TCreateAuthMiddleware(getSession)`,
-      `TCreateGuardMiddleware(route: TPageRoute, guards, buildPath)`. `TPages<Config>` — в `app`
-      (зависит от React, потребители только в `app`). Ключ `sessionContext = createContext<TSession>()`
-      — значение, появится на шаге кода.
+  `TCreateGuardMiddleware(route: TPageRoute, guards, buildPath)`. `TPages<Config>` — в `app`
+  (зависит от React, потребители только в `app`). Ключ `sessionContext = createContext<TSession>()`
+  — значение, появится на шаге кода.
 
 **Шаг I закрыт 16.11.2026.** Заглушки `RouteObject` и типа middleware заменить библиотечными
 после установки `react-router`.
@@ -229,7 +229,7 @@ type TAccessContext = { status: 'guest' } | { status: 'authenticated' };
   Срабатывает только при переходе → после выхода нужен явный переход на `/login` (в действии
   выхода или `watch` на сессию).
 - **React:** middleware react-router (data mode) — см. «Решение: guards в middleware». Как и
-  во Vue, срабатывает при переходе → после выхода нужен явный переход на `/login`.
+  во Vue, срабатывает только при переходе → после выхода нужен явный переход на `/login`.
 - Риск: ошибка в конфиге (например, `login` защищённый) даёт бесконечный цикл редиректов —
   кандидат для шага O.
 
