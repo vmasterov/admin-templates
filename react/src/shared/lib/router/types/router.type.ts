@@ -39,7 +39,7 @@ export type TCreateGuard<Config extends TRouterConfig> = (
   redirectTo: TPageKey<Config>,
 ) => TGuard<Config>;
 
-export type TCheckAccess<Config extends TRouterConfig> = (
+export type TCheckAccess = <Config extends TRouterConfig>(
   guards: readonly TGuard<Config>[],
   accessContext: TAccessContext,
   route: TPageRoute,

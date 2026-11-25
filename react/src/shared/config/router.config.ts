@@ -2,7 +2,7 @@ import type { TRouterConfig } from '@/shared/lib/router/types';
 
 export const routes = {
   article: {
-    path: '/article',
+    path: '/article/:id',
     access: 'guest',
     menu: {
       label: 'Article',
