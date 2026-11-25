@@ -180,8 +180,8 @@ type TAccessContext = { status: 'guest' } | { status: 'authenticated' };
 - [x] `TAccessContext`
 - [x] `TGuard<C>` — `(ctx, route: TPageRoute) => TPageKey<C> | null`; `TCreateGuard<C>` — фабрика
   guard'а по цели редиректа
-- [x] `TCheckAccess<C>` — результат `TPageKey<C> | null` (решает первый сработавший guard; порядок в
-  `guards.config` = приоритет), guards — `readonly TGuard<C>[]`
+- [x] `TCheckAccess` — `<C extends TRouterConfig>(guards, accessContext, route) => TPageKey<C> | null`
+  (решает первый сработавший guard; порядок в `guards.config` = приоритет), guards — `readonly TGuard<C>[]`
 - [x] Проверка `redirectTo` — **заменена unit-тестом валидности конфига** (шаг кода): каждый
   `redirectTo` ведёт на существующую страницу, пути уникальны и начинаются с `/`. Тип-валидатор
   через `defineRoutes` — паттерн библиотек (Vite, TanStack Router), для одного редиректа переусложнение.
@@ -289,3 +289,15 @@ type TAccessContext = { status: 'guest' } | { status: 'authenticated' };
   браузер) — не делаем.
 
 **Шаг O закрыт 18.11.2026.** Далее — проверка цикла (трассировка + тест), затем код.
+
+## Прогресс реализации (код)
+
+### Сессия 25.11.2026
+- Установлен `react-router` (`^8.5.3`) в `react/`.
+- Реализован `shared/lib/router/helpers/createBuildPath.ts` без приведений типов `as` (через безопасное
+  расширение типа rest-параметра аннотацией `Record<string, string> | undefined`).
+- Реализован `shared/lib/router/helpers/checkAccess.ts`. Поправлена позиция дженерика в
+  `TCheckAccess`: `<Config extends TRouterConfig>` перенесён на уровень сигнатуры функции (после `=`),
+  чтобы TS выводил `Config` из аргумента `guards`, а возвращаемый тип не схлопывался в `never | null`.
+- **Осталось по ядру и тестам:** `getMenuItems.ts`, `requireAuth.ts`, `guestOnly.ts`, актуальный
+  конфиг в `shared/config/router.config.ts` и unit-тесты на ядро и валидность конфига.
